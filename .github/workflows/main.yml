@@ -1,4 +1,4 @@
-name: Docker Build CI for PlaqView
+name: Docker Build CI for PlaqView ATAC
 
 on:
   push:
