@@ -7,7 +7,7 @@
 ### set this once in terminal before deploying to shinyapps.io ###
 # options(repos = BiocManager::repositories())
 
-# enrichR functions
+# enrichR functions 
 # handcurate db names 
 dbs <- c("KEGG_2019_Human",
          "WikiPathways_2019_Human",
