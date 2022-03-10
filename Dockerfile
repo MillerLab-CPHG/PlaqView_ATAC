@@ -15,8 +15,8 @@ COPY shiny-server.sh /usr/bin/shiny-server.sh
 RUN rm -rf /srv/shiny-server/*
 # COPY /* /srv/shiny-server/
 
-# Get the app code
-RUN git clone https://github.com/MillerLab-CPHG/PlaqView.git
+# Get the app code # this need to be edited for new repos!
+RUN git clone https://github.com/MillerLab-CPHG/PlaqView_ATAC.git
 RUN cp -r PlaqView/* /srv/shiny-server/
 
 # Make the ShinyApp available at port 80
