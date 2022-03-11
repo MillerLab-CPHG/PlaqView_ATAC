@@ -294,9 +294,9 @@ server <- function(input, output, session) {
   
    observeEvent(input$loaddatabutton, {
     # create path for loading data
-    path.to.archr.proj <- file.path(paste("data/", df$DataID[input$availabledatasettable_rows_selected], sep=""))
+    path.to.archr.plaqviewobj <- file.path(paste("data/", df$DataID[input$availabledatasettable_rows_selected], sep=""))
   
-    proj <<- loadArchRProject(path = path.to.archr.proj)
+    plaqviewobj <<- loadArchRplaqviewobject(path = path.to.archr.plaqviewobj)
     
     # show which data is read
     loadeddatasetID <<- paste("Loaded Dataset: ", print(df$DataID[input$availabledatasettable_rows_selected]))
@@ -346,7 +346,7 @@ server <- function(input, output, session) {
     output$umaps <-
       renderPlot(
         plotEmbedding(
-          ArchRProj = proj,
+          ArchRProj = plaqviewobj,
           colorBy = "cellColData",
           # UMAP
           name = input$selectlabelmethodforgenequery,
@@ -358,11 +358,11 @@ server <- function(input, output, session) {
     output$genequeryumap <- 
       renderPlot(
         plotEmbedding(
-          ArchRProj = proj, 
+          ArchRProj = plaqviewobj, 
           colorBy = "GeneIntegrationMatrix", 
           name = input$genes, 
           embedding = "UMAP",
-          imputeWeights = getImputeWeights(proj)
+          imputeWeights = getImputeWeights(plaqviewobj)
         )
       )
     
@@ -377,209 +377,13 @@ server <- function(input, output, session) {
     },
     content = function(file) {
       pdf(file, paper = "default") # paper = defult is a4 size
-      user_genes <<- str_split(input$genes, ", ")[[1]]
-
-      validate(need(input$selectaplot=="Dot", message=FALSE))
-      temp <- DimPlot(
-        plaqviewobj,
-        reduction = "umap",
-        label = TRUE,
-        label.size = 5,
-        repel = T,
-        # repel labels
-        pt.size = 1,
-        cols = color_function(length(unique(plaqviewobj@meta.data[[input$selectlabelmethodforgenequery]]))),
-        group.by = input$selectlabelmethodforgenequery) + # group.by is important, use this to call metadata separation
-        theme(legend.position="bottom", 
-              legend.box = "vertical") +
-        ggtitle("UMAP by Cell Type") +
-        theme(plot.title = element_text(hjust =  0.5)) +
-        guides(color = guide_legend(nrow = 5))
-      
-      plot(temp) #this is all you need
       
       dev.off()
     }
     
   )# close downloadhandler
   
-  #### dot plot ###
-  observeEvent(input$runcode,{ # observe event puts a pause until pushed
-    
-    # this is for the display
-    output$Dot <- renderPlot({
-      # parse string input 
-      user_genes <- str_split(input$genes, ", ")[[1]]
-      validate(need(input$selectaplot=="Dot", message=FALSE))
-      DotPlot(plaqviewobj, 
-              group.by = input$selectlabelmethodforgenequery,
-              features = user_genes) + # a trick to sep long string input
-        ggtitle("Expression Dot Plot") +
-        theme(plot.title = element_text(hjust = 1)) +
-        theme(plot.title = element_text(hjust = 0.5)) +
-        theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
-    })
-    
-    # this is for the download
-    output$downloaddotplot<- downloadHandler(
-      filename = function() {
-        paste("dotplot.pdf", sep = "")
-      },
-      content = function(file) {
-        pdf(file, paper = "default") # paper = defult is a4 size
-        user_genes <- str_split(input$genes, ", ")[[1]]
-        validate(need(input$selectaplot=="Dot", message=FALSE))
-        temp <- DotPlot(plaqviewobj, 
-                        group.by = input$selectlabelmethodforgenequery,
-                        features = user_genes) + # a trick to sep long string input
-          ggtitle("Expression Dot Plot") +
-          theme(plot.title = element_text(hjust = 1)) +
-          theme(plot.title = element_text(hjust = 0.5)) 
-        
-        plot(temp) #this is all you need
-        
-        dev.off()
-      }
-      
-    )# close downloadhandler
-    
-    #### feature plot ####
-    parsed.genes <- str_split(input$genes, ", ")[[1]]
-    output$Feature <- renderPlot({
-      user_genes <- str_split(input$genes, ", ")[[1]]
-      validate(need(input$selectaplot=="Feature", message=FALSE))
-      FeaturePlot(plaqviewobj, 
-                  order = T,
-                  pt.size = 1,
-                  features = user_genes[1:4]) + # a trick to sep long string input
-        theme(legend.position="bottom", legend.box = "vertical") + # group.by is important, use this to call metadata separation
-        theme(plot.title = element_text(hjust = 1)) +
-        theme(plot.title = element_text(hjust =  0.5)) 
-    }) 
-    
-    # this is for the download
-    output$downloadfeatureplot<- downloadHandler(
-      filename = function() {
-        paste("featureplot.pdf", sep = "")
-      },
-      content = function(file) {
-        pdf(file, paper = "default") # paper = defult is a4 size
-        user_genes <- str_split(input$genes, ", ")[[1]]
-        validate(need(input$selectaplot=="Feature", message=FALSE))
-        temp <- FeaturePlot(plaqviewobj, 
-                            order = T,
-                            pt.size = 1,
-                            features = user_genes[1:4]) + # a trick to sep long string input
-          theme(legend.position="bottom", legend.box = "vertical") + # group.by is important, use this to call metadata separation
-          theme(plot.title = element_text(hjust = 1)) +
-          theme(plot.title = element_text(hjust =  0.5)) 
-        
-        plot(temp) #this is all you need
-        
-        dev.off()
-      }
-      
-    )# close downloadhandler
-    
-    #### ridge plot ####
-    output$Ridge <- renderPlot({
-      user_genes <- str_split(input$genes, ", ")[[1]]
-      validate(need(input$selectaplot=="Ridge", message=FALSE))
-      RidgePlot(plaqviewobj,
-                cols = color_function(length(unique(plaqviewobj@meta.data[[input$selectlabelmethodforgenequery]]))),
-                group.by = input$selectlabelmethodforgenequery,
-                features =  user_genes[1:1]
-      ) + # a trick to sep long string input
-        #theme(legend.position="bottom", legend.box = "vertical") + # group.by is important, use this to call metadata separation
-        theme(plot.title = element_text(hjust =  0.5)) +
-        guides(color = guide_legend(nrow = 3))
-      
-    })
-    
-    
-    output$downloadridgeplot<- downloadHandler(
-      filename = function() {
-        paste("ridgeplot.pdf", sep = "")
-      },
-      content = function(file) {
-        pdf(file, paper = "default") # paper = defult is a4 size
-        user_genes <- str_split(input$genes, ", ")[[1]]
-        validate(need(input$selectaplot=="Ridge", message=FALSE))
-        temp <- RidgePlot(plaqviewobj,
-                          cols = color_function(length(unique(plaqviewobj@meta.data[[input$selectlabelmethodforgenequery]]))),
-                          group.by = input$selectlabelmethodforgenequery,
-                          features =  user_genes[1:1]
-        ) + # a trick to sep long string input
-          #theme(legend.position="bottom", legend.box = "vertical") + # group.by is important, use this to call metadata separation
-          theme(plot.title = element_text(hjust =  0.5)) +
-          guides(color = guide_legend(nrow = 3))
-        
-        plot(temp) #this is all you need
-        
-        dev.off()
-      }
-      
-    )# close downloadhandler
-    
-    #### cell population ####
-    output$cellpopulation <- renderPlot({
-      # this chunk is to calculate population statistics 
-      cellcounts <- plaqviewobj@meta.data[[input$selectlabelmethodforgenequery]] # extract cell names
-      cellcounts <- as.factor(cellcounts) # convert to factors
-      
-      cellcounts.summary <- as.data.frame(summary(cellcounts)) # for levels laters
-      
-      cellcounts <- as.data.frame((cellcounts)) # summarize factors into table
-      cellcounts <- dplyr::rename(cellcounts, Celltype = '(cellcounts)' ) # just to rename the columns
-      
-      # this is to create levels so i can flip the graph to the way i want
-      cellcounts.summary <- rownames_to_column(cellcounts.summary)
-      cellcounts.summary <- reorder(cellcounts.summary$rowname, cellcounts.summary$`summary(cellcounts)`)
-      sortedlevel <- levels(cellcounts.summary)
-      
-      cellpop <- ggplot(data = cellcounts, aes(y = Celltype)) +
-        geom_bar(fill = manual_color_list) +
-        xlab("Counts") +
-        ylab("Cell Types") +
-        xlim(c(-150,1800)) +
-        theme_light() +
-        scale_y_discrete(limits=sortedlevel) +
-        stat_count(geom = "text", # this stat_count function gives percentages
-                   aes(label = paste(round((..count..)/sum(..count..)*100,2),"%; n =", round((..count..)))))
-      cellpop
-    })
-    
-    ### GSEA #####
-    
-      parsed.genes <- str_split(input$genes, ", ")[[1]]
-      enriched <- enrichr(genes = parsed.genes, 
-                          database = enrichRdb) # this queries all of them
-      cleanedenrichedtable <- select(enriched[[input$selectedenrichRdb]], -Old.Adjusted.P.value, -Old.P.value,)
-      cleanedenrichedtable <- top_n(cleanedenrichedtable, 100) # top 100 will be rendered
-      
-      #select columns to display
-      cleanedenrichedtable <- cleanedenrichedtable %>% select(Term, Overlap, Adjusted.P.value, Combined.Score, Genes)
-      
-      # force as.numeric to remove a bug in DT pkg
-      #cleanedenrichedtable$Adjusted.P.value <- as.numeric(cleanedenrichedtable$Adjusted.P.value)
-      #cleanedenrichedtable$Adjusted.P.value <- as.numeric(cleanedenrichedtable$Combined.Score)
-      
-      output$enrichtable <- DT::renderDataTable(cleanedenrichedtable, server = F)
-      
-      # Downloadable csv of selected dataset
-      output$downloadenrichRdata <- downloadHandler(
-        filename = function() {
-          paste(input$genes, "_pathwayenrichment.csv", sep = "")
-        },
-        content = function(file) {
-          write.csv(enriched[[input$selectedenrichRdb]], file, row.names = FALSE)
-        } 
-      )# close downloadhandler
-    
-    
-    
-  }) # observe event closure
-  
+
   
   
 } # ends server function
