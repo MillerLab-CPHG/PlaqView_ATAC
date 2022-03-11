@@ -72,8 +72,10 @@ library(parallel)
 # # tell shiny to log all reactivity
 # reactlog_enable()
 # 
-# # tell shiny to try to paralle compute
-# future::plan("multisession")
+# tell shiny to try to paralle compute
+future::plan("multisession")
+addArchRThreads(threads = 4) 
+
 
 #### READ GOOGLE SHEET ####
 googlesheets4::gs4_deauth() # this tells google sheet to read-only
