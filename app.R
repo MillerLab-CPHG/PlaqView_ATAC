@@ -296,7 +296,7 @@ server <- function(input, output, session) {
     # create path for loading data
     path.to.archr.plaqviewobj <- file.path(paste("data/", df$DataID[input$availabledatasettable_rows_selected], sep=""))
   
-    plaqviewobj <<- loadArchRplaqviewobject(path = path.to.archr.plaqviewobj)
+    plaqviewobj <<- loadArchRProject(path = path.to.archr.plaqviewobj)
     
     # show which data is read
     loadeddatasetID <<- paste("Loaded Dataset: ", print(df$DataID[input$availabledatasettable_rows_selected]))
