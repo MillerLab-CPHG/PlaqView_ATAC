@@ -102,10 +102,10 @@ ui <- fluidPage(
   use_waiter(), 
   # waiter_show_on_load(html = spin_rotate()),
   useShinyjs(),
-  div(DT::dataTableOutput("table"), style = "font-size: 75%; width: 75%"), # DT font sinzes
+  # div(DT::dataTableOutput("table"), style = "font-size: 75%; width: 75%"), # DT font sinzes
   
   # Pages ####
-  navbarPage("PlaqView", id = "inTabset",
+  navbarPage("PlaqView-ATAC", id = "inTabset",
              
              #### UI: Data ####
              tabPanel("Select Dataset", 
@@ -290,10 +290,7 @@ server <- function(input, output, session) {
   
   # start the page with load data disabled until dataset is clicked
   disable("loaddatabutton")
-  observeEvent(input$availabledatasettable_rows_selected,{
-    enable("loaddatabutton")
-  })
-  
+ 
    observeEvent(input$loaddatabutton, {
     # create path for loading data
     path.to.archr.plaqviewobj <- file.path(paste("data/", df$DataID[input$availabledatasettable_rows_selected], sep=""))
@@ -317,10 +314,13 @@ server <- function(input, output, session) {
    
 
   })
+   
+   observeEvent(input$availabledatasettable_rows_selected,{
+     enable("loaddatabutton")
+   })
 
   # server code to show jumpto1
   observeEvent(input$loaddatabutton, {
-    
     shinyjs::show(id = "jumpto1")  
   }) 
   
@@ -341,11 +341,13 @@ server <- function(input, output, session) {
     } else{
       corrected <- str_to_title(input$genes)
     }
+  
+    parsed.genes <- str_split(input$genes, ", ")[[1]]
     
     updateTextInput(getDefaultReactiveDomain(),
                     "genes", value = corrected)
     #### UMAPS
-    output$umaps <-
+    output$umaps <- 
       renderPlot(
         plotEmbedding(
           ArchRProj = plaqviewobj,
@@ -355,35 +357,123 @@ server <- function(input, output, session) {
           # subheader
           embedding = "UMAP"
         )
-        ) # renderPlot
-    
+      ) # render plot
+       
+
     output$genequeryumap <- 
       renderPlot(
         plotEmbedding(
+        ArchRProj = plaqviewobj, 
+        colorBy = "GeneIntegrationMatrix", 
+        name = parsed.genes, 
+        embedding = "UMAP",
+        imputeWeights = getImputeWeights(plaqviewobj)
+      )
+      )# render plot
+        
+      
+    #### DOWNLOAD UMAPS ####
+    #### download gene umap 
+    output$download.genequeryumap<- downloadHandler(
+      filename = function() {
+        paste(df$DataID[input$availabledatasettable_rows_selected], "_", input$genes,
+              "UMAP.pdf", sep = "")
+      },
+      content = function(file) {
+        temp <- plotEmbedding(
           ArchRProj = plaqviewobj, 
           colorBy = "GeneIntegrationMatrix", 
-          name = input$genes, 
+          name = parsed.genes, 
           embedding = "UMAP",
           imputeWeights = getImputeWeights(plaqviewobj)
         )
-      )
+        
+        # this will save the plot to Plot Folder
+        plotPDF(
+          temp,
+          name = "geneumap",
+          width = 6,
+          height = 6,
+          ArchRProj = NULL,
+          addDOC = FALSE,
+          useDingbats = FALSE,
+          plotList = NULL, over
+        )
+        
+        # call and copy the file
+        file.copy(paste("Plots/geneumap.pdf"), file) 
+        dev.off()
+      }
+      
+    )# close downloadhandler
+    
+    #### download label umap 
+    output$download.umap<- downloadHandler(
+      filename = function() {
+        paste(df$DataID[input$availabledatasettable_rows_selected], "_", 
+              "UMAP.pdf", sep = "")
+      },
+      content = function(file) {
+        temp <- plotEmbedding(
+          ArchRProj = plaqviewobj,
+          colorBy = "cellColData",
+          # UMAP
+          name = input$selectlabelmethodforgenequery,
+          # subheader
+          embedding = "UMAP"
+        )
+          
+        # this will save the plot to Plot Folder
+        plotPDF(
+          temp,
+          name = "generalumap",
+          width = 6,
+          height = 6,
+          ArchRProj = NULL,
+          addDOC = FALSE,
+          useDingbats = FALSE,
+          plotList = NULL
+        )
+        
+        # call and copy the file
+        file.copy(paste("Plots/generalumap.pdf"), file)   
+      }
+    )# close downloadhandler
     
     
+    
+    
+    #### GSEA ####
+    enriched <- enrichr(genes = parsed.genes, 
+                        database = enrichRdb) # this queries all of them
+    cleanedenrichedtable <- select(enriched[[input$selectedenrichRdb]], -Old.Adjusted.P.value, -Old.P.value,)
+    cleanedenrichedtable <- top_n(cleanedenrichedtable, 100) # top 100 will be rendered
+    
+    #select columns to display
+    cleanedenrichedtable <- cleanedenrichedtable %>% select(Term, Overlap, Adjusted.P.value, Combined.Score, Genes)
+    
+    # force as.numeric to remove a bug in DT pkg
+    #cleanedenrichedtable$Adjusted.P.value <- as.numeric(cleanedenrichedtable$Adjusted.P.value)
+    #cleanedenrichedtable$Adjusted.P.value <- as.numeric(cleanedenrichedtable$Combined.Score)
+    
+    output$enrichtable <- DT::renderDataTable(cleanedenrichedtable, server = F)
+    
+    # Downloadable csv of selected dataset
+    output$downloadenrichRdata <- downloadHandler(
+      filename = function() {
+        paste(parsed.genes, "_pathwayenrichment.csv", sep = "")
+      },
+      content = function(file) {
+        write.csv(enriched[[input$selectedenrichRdb]], file, row.names = FALSE)
+      } 
+    )# close downloadhandler
+    
+
     
   })# closes observe event
   
-  # this is for the download
-  output$downloadumapplot<- downloadHandler(
-    filename = function() {
-      paste("UMAP.pdf", sep = "")
-    },
-    content = function(file) {
-      pdf(file, paper = "default") # paper = defult is a4 size
-      
-      dev.off()
-    }
-    
-  )# close downloadhandler
+
+  
   
 
   
