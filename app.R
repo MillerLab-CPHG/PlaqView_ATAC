@@ -373,40 +373,6 @@ server <- function(input, output, session) {
         
       
     #### DOWNLOAD UMAPS ####
-    #### download gene umap 
-    output$download.genequeryumap<- downloadHandler(
-      filename = function() {
-        paste(df$DataID[input$availabledatasettable_rows_selected], "_", input$genes,
-              "UMAP.pdf", sep = "")
-      },
-      content = function(file) {
-        temp <- plotEmbedding(
-          ArchRProj = plaqviewobj, 
-          colorBy = "GeneIntegrationMatrix", 
-          name = parsed.genes, 
-          embedding = "UMAP",
-          imputeWeights = getImputeWeights(plaqviewobj)
-        )
-        
-        # this will save the plot to Plot Folder
-        plotPDF(
-          temp,
-          name = "geneumap",
-          width = 6,
-          height = 6,
-          ArchRProj = NULL,
-          addDOC = FALSE,
-          useDingbats = FALSE,
-          plotList = NULL, over
-        )
-        
-        # call and copy the file
-        file.copy(paste("Plots/geneumap.pdf"), file) 
-        dev.off()
-      }
-      
-    )# close downloadhandler
-    
     #### download label umap 
     output$download.umap<- downloadHandler(
       filename = function() {
@@ -414,6 +380,7 @@ server <- function(input, output, session) {
               "UMAP.pdf", sep = "")
       },
       content = function(file) {
+        pdf(file, onefile = F)
         temp <- plotEmbedding(
           ArchRProj = plaqviewobj,
           colorBy = "cellColData",
@@ -422,25 +389,34 @@ server <- function(input, output, session) {
           # subheader
           embedding = "UMAP"
         )
-          
-        # this will save the plot to Plot Folder
-        plotPDF(
-          temp,
-          name = "generalumap",
-          width = 6,
-          height = 6,
-          ArchRProj = NULL,
-          addDOC = FALSE,
-          useDingbats = FALSE,
-          plotList = NULL
-        )
         
-        # call and copy the file
-        file.copy(paste("Plots/generalumap.pdf"), file)   
+        plot(temp)
+        dev.off()
       }
     )# close downloadhandler
     
-    
+    #### download gene umap 
+    output$download.genequeryumap<- downloadHandler(
+      filename = function() {
+        paste(df$DataID[input$availabledatasettable_rows_selected], "_", input$genes,
+              "UMAP.pdf", sep = "")
+      },
+      content = function(file) {
+        pdf(file, onefile = F)
+        
+        temp <- plotEmbedding(
+          ArchRProj = plaqviewobj, 
+          colorBy = "GeneIntegrationMatrix", 
+          name = parsed.genes, 
+          embedding = "UMAP",
+          imputeWeights = getImputeWeights(plaqviewobj)
+        )
+        
+        plot(temp)
+        dev.off()
+      }
+      
+    )# close downloadhandler
     
     
     #### GSEA ####
