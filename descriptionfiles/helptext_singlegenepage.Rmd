@@ -5,10 +5,8 @@ date: "1/2/2021"
 output: html_document
 ---
 
-### ***Gene Expression Explorer***
+### ***Gene Expression Score Predictor***
 
 Use this module to **query specific gene(s) and generate graphs for publications.**
 
-Gene names will be converted to correct format based on species. For a **single** gene, feature and ridge plots work well. For **multiple** genes, use dot plots.
-
-Acronyms: chondrocytes (CH) common myeloid progenitor (CMP), dendritic cells (DC), endothelial cells (EC), fibroblasts (FB), granulocyte/monocyte progenitors (GMP), Macrophages (Mø), Monocytes (Mono), Natural Killer (NK), stem cells (SC), smooth muscle cells (SMC).
+By default, for scATAC-seq datasets, PlaqView uses ArchR's default method, MAGIC, to predict gene scores based on nearby open regions. Details for this calculation can be found on [this page](https://www.archrproject.com/bookdown/marker-genes-imputation-with-magic.html).

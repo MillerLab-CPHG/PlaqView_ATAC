@@ -177,7 +177,7 @@ ui <- fluidPage(
              ), # tab panel
              
              #### UI: Genes   ----
-             tabPanel(title = "Gene Lookup", value = "panel1",
+             tabPanel(title = "Gene Score Predictor", value = "panel1",
                       mainPanel(width = 12, # 12/12 is full panel
                                 fluidRow(## panel for gene input
                                   column(
@@ -271,6 +271,78 @@ ui <- fluidPage(
              
              
              
+             #### UI: Track   ----
+             tabPanel(title = "Track Browser", value = "panel1",
+                      mainPanel(width = 12, # 12/12 is full panel
+                                fluidRow(## panel for gene input
+                                  column(
+                                    width = 5,
+                                    wellPanel(                                      
+                                      # must add up to 12 all columns
+                                      textInput(
+                                        "genesfortrack",
+                                        width = '100%',
+                                        h3("Query Chromatin Tracks", h5("please follow HUGO conventions")),
+                                        value = "NOX4",
+                                        placeholder = "try: TREM2, CYBB"
+                                      ),
+                                      
+                                      # choose the type of output graph 
+                                      
+                                      pickerInput(
+                                        inputId = "selectlabelmethodfortrackquery",
+                                        label = "Select Labeling Method", 
+                                        choices = list (
+                                          "UMAP (Numbered) Clusters" = "Clusters",
+                                          "Author Provided Annotation" = "Author_Provided"
+                                        ), 
+                                        selected = "UMAP Clusters",
+                                        width = '95%' #neeed to fit this
+                                      ),
+                                      
+                                      # 'go' button
+                                      actionBttn(
+                                        inputId = "runtrack",
+                                        label = "Query Genome Track",
+                                        style = "unite",
+                                        color = "success",
+                                        block = T)
+                                      
+                                    )
+                                    
+                                  ),
+                                  
+                                  ## panel for description
+                                  column(
+                                    width = 7,
+                                    wellPanel(includeMarkdown("descriptionfiles/helptext_trackpage.Rmd"))
+                                  )
+                                ),
+                                
+                                
+                                #spacer
+                                br(),
+                                
+                                
+                                ## lower panel for graphic outputs
+                                wellPanel(width = 12,
+                                          fluidRow(
+                                            column(width = 12, 
+                                                   plotOutput("genometrack", width = "auto", height = '500px'),
+                                                   
+                                                   )
+                                          )
+                                          
+                                )# wellpanel
+                                
+                                
+                      )# MAIN PANEL CLOSURE
+             ), # TAB PANEL CLOSURE
+             
+             
+             
+             
+             
              #### App UI Closure ####
   )# close navbarpage
   
@@ -312,7 +384,8 @@ server <- function(input, output, session) {
       paste0("Current dataset: ", df$DataID[input$availabledatasettable_rows_selected])
     }) 
    
-
+    shinyjs::show(id = "jumpto1")  
+    
   })
    
    observeEvent(input$availabledatasettable_rows_selected,{
@@ -321,7 +394,6 @@ server <- function(input, output, session) {
 
   # server code to show jumpto1
   observeEvent(input$loaddatabutton, {
-    shinyjs::show(id = "jumpto1")  
   }) 
   
   # server code to jump to page 1
@@ -452,6 +524,76 @@ server <- function(input, output, session) {
   
   
 
+  
+  
+  #### SER: Genes ####
+  observeEvent(input$runtrack,{ 
+    
+    #### NOMENCLATURE UPDATE
+    if (df$Species[input$availabledatasettable_rows_selected] == "Human") {
+      corrected <- str_to_upper(input$genesfortrack)
+    } else{
+      corrected <- str_to_title(input$genesfortrack)
+    }
+    
+    parsed.genes <- str_split(input$genesfortrack, ", ")[[1]]
+    
+    updateTextInput(getDefaultReactiveDomain(),
+                    "genesfortrack", value = corrected)
+    #### UMAPS
+    output$genometrack <- 
+      renderPlot({
+          p <- plotBrowserTrack(
+            ArchRProj = plaqviewobj, 
+            groupBy = "Clusters", 
+            geneSymbol = "NOX4", 
+            upstream = 50000,
+            downstream = 50000
+          )
+          grid::grid.draw(p$NOX4)
+        }
+        
+        
+        
+        
+      ) # render plot
+    
+    
+    
+    #### DOWNLOAD TRACK ####
+    #### download label umap 
+    output$download.umap<- downloadHandler(
+      filename = function() {
+        paste(df$DataID[input$availabledatasettable_rows_selected], "_", 
+              "UMAP.pdf", sep = "")
+      },
+      content = function(file) {
+        pdf(file, onefile = F)
+        temp <- plotEmbedding(
+          ArchRProj = plaqviewobj,
+          colorBy = "cellColData",
+          # UMAP
+          name = input$selectlabelmethodforgenequery,
+          # subheader
+          embedding = "UMAP"
+        )
+        
+        plot(temp)
+        dev.off()
+      }
+    )# close downloadhandler
+    
+
+    
+    
+    
+  })# closes observe event
+  
+  
+  
+  
+  
+  
   
   
 } # ends server function

@@ -1,0 +1,11 @@
+---
+title: "helptext_multigenepage.Rmd"
+author: "WeiMa"
+date: "1/2/2021"
+output: html_document
+---
+### ***Genome Track Browser***
+
+Use this module to **query specific gene(s) and generate graphs for publications.**
+
+In addition to calculating gene scores, PlaqView can also visualize the nearby chromatin accessibility, as powered by ArchR. Details for this visualization can be found [here](https://www.archrproject.com/bookdown/track-plotting-with-archrbrowser.html).
