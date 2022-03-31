@@ -75,8 +75,8 @@ library(reactable)
 # reactlog_enable()
 # 
 # tell shiny to try to paralle compute
-future::plan("multisession")
-addArchRThreads(threads = 4) 
+# future::plan("multisession")
+addArchRThreads(threads = 1) 
 
 
 #### READ GOOGLE SHEET ####
@@ -623,7 +623,7 @@ server <- function(input, output, session) {
       renderPlot({
         if(input$peak2geneswitch == TRUE){
           
-          addArchRThreads(threads = 1) 
+          
           
           temp <- plotBrowserTrack(
             ArchRProj = plaqviewobj, 
@@ -634,29 +634,23 @@ server <- function(input, output, session) {
             loops = getPeak2GeneLinks(plaqviewobj)
           )
           
-          addArchRThreads(threads = 4) 
-          
+
           
         }else{
           
-          addArchRThreads(threads = 1) 
-          
+
           temp <- plotBrowserTrack(
             ArchRProj = plaqviewobj, 
-            groupBy = "Author_Provided", 
-            geneSymbol = "NOX4", 
+            groupBy = input$selectlabelmethodfortrackquery, 
+            geneSymbol = input$genesfortrack, 
             upstream = 50000,
             downstream = 50000 
           )
-          
-          addArchRThreads(threads = 4) 
-          
         }
         
         
         grid::grid.newpage()
-        grid::grid.draw(p[["MYH11"]])
-
+        grid::grid.draw(temp[[input$genesfortrack]])
           
           }
       ) # render plot
@@ -673,18 +667,7 @@ server <- function(input, output, session) {
       content = function(file) {
         pdf()
         
-        temp <- plotBrowserTrack(
-          ArchRProj = plaqviewobj, 
-          groupBy = "Author_Provided", 
-          geneSymbol = "NOX4", 
-          upstream = 50000,
-          downstream = 50000, 
-          loops = getPeak2GeneLinks(plaqviewobj)
-        )
-        
-        plot(temp$NOX4)
-        
-        dev.off()
+  
       }
     )# close downloadhandler
     

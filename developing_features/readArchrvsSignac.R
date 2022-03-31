@@ -21,6 +21,7 @@ library(CIPR)
 library(ArchR)
 library(Signac)
 library(parallel)
+# library(rhdf5)
 
 # library(reactlog)
 # library(future)
@@ -79,6 +80,8 @@ p <- plotBrowserTrack(
 
 grid::grid.newpage()
 grid::grid.draw(p$MYH11)
+grid::grid.draw(p[["MYH11"]])
+
 
 # output time code
 proc.time() - ptm
