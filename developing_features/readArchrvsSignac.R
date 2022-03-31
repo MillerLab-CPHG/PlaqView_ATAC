@@ -66,9 +66,10 @@ plotEmbedding(
 
 
 
+addArchRThreads(threads = 1) 
 
 p <- plotBrowserTrack(
-  ArchRProj = proj, 
+  ArchRProj = plaqviewobj, 
   groupBy = "Clusters", 
   geneSymbol = "MYH11", 
   upstream = 50000,

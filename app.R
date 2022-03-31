@@ -66,6 +66,8 @@ library(ArchR)
 library(hexbin) # this is required for archR
 library(Signac)
 library(parallel)
+library(reactable)
+
 # library(reactlog)
 # library(future)
 #
@@ -89,9 +91,8 @@ df$DOI <- paste("<a href=",  df$DOI,">", "Link", "</a>") # this converts to clic
 # subset data rows that are marked 'deployed = Yes"
 df <- filter(df, `Deployed` == "Yes")
 df <- df %>% 
-  select(Authors, Year, Journal, DOI, Species, Tissue, Notes, Population, Cell.Number, 'DataID', `Article.Title` ) 
+  select('DataID', Year, Journal, DOI, Species, Tissue, Notes, Population, Cells = Cell.Number, `Article.Title` ) 
 df$`Article.Title` <- str_to_title(df$`Article.Title`) # autocaps
-
 #### UI ####
 # Define UI for application that draws a histogram
 ui <- fluidPage(
@@ -116,8 +117,8 @@ ui <- fluidPage(
                                            img(src = "logo.png", width = '100%'),
                                            h3("Instructions:"),
                                            tags$ol(
-                                             tags$li("Start by clicking on desired dataset."),
-                                             tags$li("Click the blue 'Load Dataset' button. (This button is disabled until you click on a dataset!)"), # change server code to toggle
+                                             tags$li("Select a dataset from the BLUE drop-down Menu."),
+                                             tags$li("Click the blue 'Load Dataset' button."), # change server code to toggle
                                              tags$li("The 'Start Exploring' button will appear when data is loaded."),
                                              tags$li("(Optional) come back to this page to load another dataset.")
                                              
@@ -126,14 +127,26 @@ ui <- fluidPage(
                                            fluidRow(
                                              column(width = 12,
                                                     # load data button
+                                                    h4("Select a Dataset"),
+                                                    pickerInput(
+                                                      inputId = "dataselector",
+                                                      #label = "Select a Dataset", 
+                                                      choices = df$DataID,
+                                                      choicesOpt = list(
+                                                        subtext = paste(df$Species, ": ",
+                                                                        df$Cells,
+                                                                        " Cells",
+                                                                        sep = "")),
+                                                      options = list(
+                                                        style = "btn-primary")
+                                                    ),
+                                                    
                                                     actionBttn(
                                                       inputId = "loaddatabutton",
                                                       label = "Load Dataset",
                                                       style = "unite",
                                                       color = "primary",
                                                       block = T),
-                                                    
-                                                    textOutput("loadeddatasetID"),
                                                     
                                                     br(),
                                                     # jump to page 1 button
@@ -145,36 +158,39 @@ ui <- fluidPage(
                                                         color = "success",
                                                         block = T)
                                                     ),
+                                                    br(),
+                                                    helpText(textOutput("loadeddatasetID")) ,
                                                     
                                              ),
-                                           
-                                                    
+                                             
+                                             
                                              
                                            ),
-                                           )
+                                         )
                                   ),
                                   column(width = 7,
                                          wellPanel(
                                            includeMarkdown("descriptionfiles/helptext_welcome.Rmd"),
                                            img(src = "abstract.png", width = '100%'),
                                          )
-                                         ), # column
+                                  ), # column
                                   
-                                 
+                                  
                                   
                                 ) # fluid row 
-                                ), # mainpanel
+                      ), # mainpanel
                       mainPanel(width = 12,
-                                wellPanel(
-                                  h3("Click to Select a Single-Cell Dataset"),
-                                  br(),
-                                  DT::dataTableOutput('availabledatasettable'),
-                                          br(),
-
-                                          ),
-                              
+                                
+                                h4("Details of Single- Cell Dataset and IDs"),
+                                actionButton(inputId = "refreshtable", "Fetch Latest Dataset Details"),
+                                reactableOutput("availabledatasettable"),
+                                br(),
+                                inlineCSS(list("table" = "font-size: 12px")),
+                                
+                                
+                                
                       )
-             ), # tab panel
+             ),
              
              #### UI: Genes   ----
              tabPanel(title = "Gene Score Predictor", value = "panel1",
@@ -299,7 +315,12 @@ ui <- fluidPage(
                                         selected = "UMAP Clusters",
                                         width = '95%' #neeed to fit this
                                       ),
-                                      
+                                      materialSwitch(
+                                        inputId = "peak2geneswitch",
+                                        label = "Peak2Gene Overlay", 
+                                        value = FALSE,
+                                        status = "primary"
+                                      ),
                                       # 'go' button
                                       actionBttn(
                                         inputId = "runtrack",
@@ -328,7 +349,7 @@ ui <- fluidPage(
                                 wellPanel(width = 12,
                                           fluidRow(
                                             column(width = 12, 
-                                                   plotOutput("genometrack", width = "auto", height = '500px'),
+                                                   plotOutput("genometrack", width = "auto", height = '1000px'),
                                                    
                                                    )
                                           )
@@ -355,45 +376,101 @@ ui <- fluidPage(
 server <- function(input, output, session) {
   #### SER: Data ####
   output$availabledatasettable <-
-    DT::renderDataTable(df, server = F, # server is for speed/loading
-                        selection = list(mode = 'single'),
-                        options=list(columnDefs = list(list(visible=FALSE, targets=c(10)))), # this hides the #8 col (datasetID)
-                        escape = FALSE) # this escapes rendering html (link) literally and makes link clickable
+    renderReactable({
+      reactable(df, compact = T, searchable = T, defaultPageSize = 20,
+                defaultColDef = colDef(
+                  header = function(value) gsub(".", " ", value, fixed = TRUE),
+                  # ell = function(value) format(value, nsmall = 1),
+                  align = "center",
+                  minWidth  = 50,
+                  headerStyle = list(background = "#f7f7f8")
+                ),
+                columns = list(
+                  'Article.Title' = colDef(minWidth = 200,
+                  ),
+                  # DOI = colDef(html = TRUE, cell = function(value, index) {
+                  #   # this is raw html
+                  #   sprintf('<a href="%s" target="_blank">LINK</a>', df$DOI[index], value)
+                  #   }),
+                  Cells = colDef(format = colFormat(separators = TRUE),
+                                 footer = paste0("Total Cells: ", sum(as.numeric(df$Cells)))
+                  ),
+                  
+                  Journal = colDef(html = TRUE, cell = function(value, index) {
+                    sprintf('<a href="%s" target="_blank">%s</a>', df$DOI[index], value)
+                  }),       
+                  Year = colDef(show = T),
+                  DOI = colDef(show = F),
+                  
+                  Tissue = colDef(show = F),
+                  Notes = colDef(show = F),
+                  Species = colDef(show = T),
+                  DataID = colDef(
+                    minWidth = 100,
+                    name = "Data ID",
+                    html = TRUE,
+                    cell = function(value, index){
+                      species <- df$Species[index]
+                      year <- df$Year[index]
+                      tissue <- df$Tissue[index]
+                      Notes <- df$Notes[index]
+                      DOI <- df$DOI[index]
+                      div(
+                        div(style = list(fontWeight = 600), value),
+                        #div(style = list(fontSize = 12), species),
+                        #div(style = list(fontSize = 12), year),
+                        div(style = list(fontSize = 12), tissue),
+                        div(style = list(fontSize = 12), Notes)
+                      )# div
+                    }
+                  )
+                )
+      )
+      
+      
+    })
   
-  # start the page with load data disabled until dataset is clicked
-  disable("loaddatabutton")
- 
-   observeEvent(input$loaddatabutton, {
-    # create path for loading data
-    path.to.archr.plaqviewobj <- file.path(paste("data/", df$DataID[input$availabledatasettable_rows_selected], sep=""))
+  # refresh button 
   
-    plaqviewobj <<- loadArchRProject(path = path.to.archr.plaqviewobj)
+  # refresh button
+  observeEvent(input$refreshtable, {
+    session$reload()
+    session$reload()
+    session$reload()
+    session$reload()
+    session$reload()
+    session$reload()
     
+    
+  })
+  
+  observeEvent(input$loaddatabutton, {
+    # create path for loading data
+    path <- file.path(paste("data/", input$dataselector, "/", sep=""))
+    plaqviewobj <<- loadArchRProject(path)
+
     # show which data is read
-    loadeddatasetID <<- paste("Loaded Dataset: ", print(df$DataID[input$availabledatasettable_rows_selected]))
+    loadeddatasetID <<- paste("Dataset Loaded Sucessfully: ", print(input$dataselector))
     output$loadeddatasetID <- renderText(loadeddatasetID)
     
     ## these are just for displaying current data name in other tabs##
     output$selecteddatasetID <- renderText({
-      paste0("Current dataset: ", df$DataID[input$availabledatasettable_rows_selected])
+      paste0("Current dataset: ", input$dataselector)
     }) 
     output$selecteddatasetID2 <- renderText({
-      paste0("Current dataset: ", df$DataID[input$availabledatasettable_rows_selected])
+      paste0("Current dataset: ", input$dataselector)
     }) 
     output$selecteddatasetID3 <- renderText({
-      paste0("Current dataset: ", df$DataID[input$availabledatasettable_rows_selected])
+      paste0("Current dataset: ", input$dataselector)
     }) 
-   
-    shinyjs::show(id = "jumpto1")  
+    
     
   })
-   
-   observeEvent(input$availabledatasettable_rows_selected,{
-     enable("loaddatabutton")
-   })
-
+  
   # server code to show jumpto1
   observeEvent(input$loaddatabutton, {
+    
+    shinyjs::show(id = "jumpto1")  
   }) 
   
   # server code to jump to page 1
@@ -402,13 +479,14 @@ server <- function(input, output, session) {
                       selected = "panel1") # this is to switch to tab1
     
   })
+  
 
   
   #### SER: Genes ####
   observeEvent(input$runcode,{ 
     
     #### NOMENCLATURE UPDATE
-    if (df$Species[input$availabledatasettable_rows_selected] == "Human") {
+    if (df$Species[df$DataID == input$dataselector] == "Human") {
       corrected <- str_to_upper(input$genes)
     } else{
       corrected <- str_to_title(input$genes)
@@ -448,7 +526,7 @@ server <- function(input, output, session) {
     #### download label umap 
     output$download.umap<- downloadHandler(
       filename = function() {
-        paste(df$DataID[input$availabledatasettable_rows_selected], "_", 
+        paste(input$dataselector, "_", 
               "UMAP.pdf", sep = "")
       },
       content = function(file) {
@@ -470,7 +548,7 @@ server <- function(input, output, session) {
     #### download gene umap 
     output$download.genequeryumap<- downloadHandler(
       filename = function() {
-        paste(df$DataID[input$availabledatasettable_rows_selected], "_", input$genes,
+        paste(input$dataselector, "_", input$genes,
               "UMAP.pdf", sep = "")
       },
       content = function(file) {
@@ -509,7 +587,7 @@ server <- function(input, output, session) {
     # Downloadable csv of selected dataset
     output$downloadenrichRdata <- downloadHandler(
       filename = function() {
-        paste(parsed.genes, "_pathwayenrichment.csv", sep = "")
+        paste(parsed.genes, input$dataselector, "_pathwayenrichment.csv", sep = "")
       },
       content = function(file) {
         write.csv(enriched[[input$selectedenrichRdb]], file, row.names = FALSE)
@@ -526,11 +604,11 @@ server <- function(input, output, session) {
 
   
   
-  #### SER: Genes ####
+  #### SER: Track ####
   observeEvent(input$runtrack,{ 
     
     #### NOMENCLATURE UPDATE
-    if (df$Species[input$availabledatasettable_rows_selected] == "Human") {
+    if (df$Species[df$DataID == input$dataselector] == "Human") {
       corrected <- str_to_upper(input$genesfortrack)
     } else{
       corrected <- str_to_title(input$genesfortrack)
@@ -540,22 +618,47 @@ server <- function(input, output, session) {
     
     updateTextInput(getDefaultReactiveDomain(),
                     "genesfortrack", value = corrected)
-    #### UMAPS
+
     output$genometrack <- 
       renderPlot({
-          p <- plotBrowserTrack(
+        if(input$peak2geneswitch == TRUE){
+          
+          addArchRThreads(threads = 1) 
+          
+          temp <- plotBrowserTrack(
             ArchRProj = plaqviewobj, 
-            groupBy = "Clusters", 
+            groupBy = input$selectlabelmethodfortrackquery, 
+            geneSymbol = input$genesfortrack, 
+            upstream = 50000,
+            downstream = 50000, 
+            loops = getPeak2GeneLinks(plaqviewobj)
+          )
+          
+          addArchRThreads(threads = 4) 
+          
+          
+        }else{
+          
+          addArchRThreads(threads = 1) 
+          
+          temp <- plotBrowserTrack(
+            ArchRProj = plaqviewobj, 
+            groupBy = "Author_Provided", 
             geneSymbol = "NOX4", 
             upstream = 50000,
-            downstream = 50000
+            downstream = 50000 
           )
-          grid::grid.draw(p$NOX4)
+          
+          addArchRThreads(threads = 4) 
+          
         }
         
         
-        
-        
+        grid::grid.newpage()
+        grid::grid.draw(p[["MYH11"]])
+
+          
+          }
       ) # render plot
     
     
@@ -564,21 +667,23 @@ server <- function(input, output, session) {
     #### download label umap 
     output$download.umap<- downloadHandler(
       filename = function() {
-        paste(df$DataID[input$availabledatasettable_rows_selected], "_", 
-              "UMAP.pdf", sep = "")
+        paste(input$dataselector, "_", 
+              "Genome_Browser_Tracks.pdf", sep = "")
       },
       content = function(file) {
-        pdf(file, onefile = F)
-        temp <- plotEmbedding(
-          ArchRProj = plaqviewobj,
-          colorBy = "cellColData",
-          # UMAP
-          name = input$selectlabelmethodforgenequery,
-          # subheader
-          embedding = "UMAP"
+        pdf()
+        
+        temp <- plotBrowserTrack(
+          ArchRProj = plaqviewobj, 
+          groupBy = "Author_Provided", 
+          geneSymbol = "NOX4", 
+          upstream = 50000,
+          downstream = 50000, 
+          loops = getPeak2GeneLinks(plaqviewobj)
         )
         
-        plot(temp)
+        plot(temp$NOX4)
+        
         dev.off()
       }
     )# close downloadhandler
