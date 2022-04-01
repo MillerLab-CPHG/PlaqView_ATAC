@@ -624,28 +624,32 @@ server <- function(input, output, session) {
         if(input$peak2geneswitch == TRUE){
           
           
+          tryCatch({
+            temp <- plotBrowserTrack(
+              ArchRProj = plaqviewobj, 
+              groupBy = input$selectlabelmethodfortrackquery, 
+              geneSymbol = input$genesfortrack, 
+              upstream = 50000,
+              downstream = 50000, 
+              loops = getPeak2GeneLinks(plaqviewobj)
+            )
+          })
           
-          temp <- plotBrowserTrack(
-            ArchRProj = plaqviewobj, 
-            groupBy = input$selectlabelmethodfortrackquery, 
-            geneSymbol = input$genesfortrack, 
-            upstream = 50000,
-            downstream = 50000, 
-            loops = getPeak2GeneLinks(plaqviewobj)
-          )
           
 
           
         }else{
-          
+          tryCatch({
+            temp <- plotBrowserTrack(
+              ArchRProj = plaqviewobj, 
+              groupBy = input$selectlabelmethodfortrackquery, 
+              geneSymbol = input$genesfortrack, 
+              upstream = 50000,
+              downstream = 50000 
+            )
+          })
 
-          temp <- plotBrowserTrack(
-            ArchRProj = plaqviewobj, 
-            groupBy = input$selectlabelmethodfortrackquery, 
-            geneSymbol = input$genesfortrack, 
-            upstream = 50000,
-            downstream = 50000 
-          )
+         
         }
         
         
