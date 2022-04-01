@@ -655,8 +655,6 @@ server <- function(input, output, session) {
           }
       ) # render plot
     
-    
-    
     #### DOWNLOAD TRACK ####
     #### download label umap 
     output$download.umap<- downloadHandler(
