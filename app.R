@@ -67,7 +67,7 @@ library(hexbin) # this is required for archR
 library(Signac)
 library(parallel)
 library(reactable)
-
+library(magick)
 # library(reactlog)
 # library(future)
 #
