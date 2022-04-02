@@ -93,6 +93,9 @@ df <- filter(df, `Deployed` == "Yes")
 df <- df %>% 
   select('DataID', Year, Journal, DOI, Species, Tissue, Notes, Population, Cells = Cell.Number, `Article.Title` ) 
 df$`Article.Title` <- str_to_title(df$`Article.Title`) # autocaps
+#### ENV R ARCHR ####
+Sys.setenv(HDF5_USE_FILE_LOCKING=FALSE, RHDF5_USE_FILE_LOCKING=FALSE)
+
 #### UI ####
 # Define UI for application that draws a histogram
 ui <- fluidPage(
