@@ -76,7 +76,7 @@ library(reactable)
 # 
 # tell shiny to try to paralle compute
 # future::plan("multisession")
-addArchRThreads(threads = 4) 
+addArchRThreads(threads = 6) 
 
 
 #### READ GOOGLE SHEET ####
