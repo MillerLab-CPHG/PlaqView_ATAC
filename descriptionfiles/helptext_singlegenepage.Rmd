@@ -9,4 +9,6 @@ output: html_document
 
 Use this module to **query specific gene(s) and generate graphs for publications.**
 
-By default, for scATAC-seq datasets, PlaqView uses ArchR's default method, MAGIC, to predict gene scores based on nearby open regions. Details for this calculation can be found on [this page](https://www.archrproject.com/bookdown/marker-genes-imputation-with-magic.html).
+By default, for scATAC-seq datasets, PlaqView uses ArchR's to predict gene scores based on nearby open regions. Details for this calculation can be found on [this page](https://www.archrproject.com/bookdown/marker-genes-imputation-with-magic.html).
+
+In short, a **gene score** is essentially a prediction of how highly expressed a gene will be based on the accessibility of regulatory elements in the vicinity of the gene. ArchR also uses MAGIC to imputes the gene scores by smoothing the signal across genes.

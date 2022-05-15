@@ -224,6 +224,17 @@ ui <- fluidPage(
                                         width = '95%' #neeed to fit this
                                       ),
                                       
+                                      pickerInput(
+                                        inputId = "scorecalculation",
+                                        label = "Gene Score Prediction Method", 
+                                        choices = list (
+                                          "Built-in ArchR Gene Score" = "GeneScoreMatrix",
+                                          "Predicted Score via scRNA Integration" = "GeneIntegrationMatrix"
+                                        ), 
+                                        selected = "Built-in ArchR Gene Score",
+                                        width = '95%' #neeed to fit this
+                                      ),
+                                      
                                       # 'go' button
                                       actionBttn(
                                         inputId = "runcode",
@@ -517,7 +528,7 @@ server <- function(input, output, session) {
       renderPlot(
         plotEmbedding(
         ArchRProj = plaqviewobj, 
-        colorBy = "GeneIntegrationMatrix", 
+        colorBy = input$scorecalculation, 
         name = parsed.genes, 
         embedding = "UMAP",
         imputeWeights = getImputeWeights(plaqviewobj)
@@ -559,7 +570,7 @@ server <- function(input, output, session) {
         
         temp <- plotEmbedding(
           ArchRProj = plaqviewobj, 
-          colorBy = "GeneIntegrationMatrix", 
+          colorBy = input$scorecalculation, 
           name = parsed.genes, 
           embedding = "UMAP",
           imputeWeights = getImputeWeights(plaqviewobj)
