@@ -461,9 +461,9 @@ server <- function(input, output, session) {
   observeEvent(input$loaddatabutton, {
     # create path for loading data
     path <- file.path(paste("data/", input$dataselector, "/", sep=""))
-    plaqviewobj <<- loadArchRProject(path)
+    raw <<- loadArchRProject(path)
     
-    # plaqviewobj <<- addImputeWeights(plaqviewobj)
+    plaqviewobj <<- addImputeWeights(raw)
     
 
     # show which data is read
