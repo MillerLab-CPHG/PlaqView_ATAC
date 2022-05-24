@@ -462,6 +462,9 @@ server <- function(input, output, session) {
     # create path for loading data
     path <- file.path(paste("data/", input$dataselector, "/", sep=""))
     plaqviewobj <<- loadArchRProject(path)
+    
+    plaqviewobj <- addImputeWeights(plaqviewobj)
+    
 
     # show which data is read
     loadeddatasetID <<- paste("Dataset Loaded Sucessfully: ", print(input$dataselector))
