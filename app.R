@@ -463,7 +463,7 @@ server <- function(input, output, session) {
     path <- file.path(paste("data/", input$dataselector, "/", sep=""))
     plaqviewobj <<- loadArchRProject(path)
     
-    plaqviewobj <- addImputeWeights(plaqviewobj)
+    plaqviewobj <<- addImputeWeights(plaqviewobj)
     
 
     # show which data is read
